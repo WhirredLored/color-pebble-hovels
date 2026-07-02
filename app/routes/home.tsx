@@ -1,13 +1,21 @@
 import type { Route } from "./+types/home";
-import { Welcome } from "../welcome/welcome";
+import { createClient } from "~/utils/supabase.server";
 
-export function meta({}: Route.MetaArgs) {
-  return [
-    { title: "New React Router App" },
-    { name: "description", content: "Welcome to React Router!" },
-  ];
+export async function loader({ request }: Route.LoaderArgs) {
+  const { supabase } = createClient(request);
+  const { data: todos } = await supabase.from("todos").select();
+
+  return { todos };
 }
 
-export default function Home() {
-  return <Welcome />;
+export default function Home({ loaderData }: Route.ComponentProps) {
+  return (
+    <>
+      <ul>
+        {loaderData.todos?.map((todo) => (
+          <li key={todo.id}>{todo.name}</li>
+        ))}
+      </ul>
+    </>
+  );
 }
