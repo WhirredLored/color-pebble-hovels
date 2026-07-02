@@ -5,14 +5,12 @@
   "scripts": {
     "build": "react-router build",
     "dev": "react-router dev",
-    "start": "react-router-serve ./build/server/index.js",
     "typecheck": "react-router typegen && tsc"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "@react-router/node": "8.0.0",
-    "@react-router/serve": "8.0.0",
     "@supabase/supabase-js": "^2.110.0",
     "@workos-inc/authkit-react-router": "^0.12.1",
     "dotenv": "^17.4.2",
