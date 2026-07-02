@@ -23,7 +23,7 @@ async function main() {
     where: { email: "admin@huestonehomes.com" },
     update: {},
     create: {
-      workosId: "user_workos_admin_seed_001",
+      supabaseId: "user_supabase_admin_seed_001",
       email: "admin@huestonehomes.com",
       role: "ADMIN",
       profile: {
@@ -53,7 +53,7 @@ async function main() {
     where: { email: "sarah.mitchell@example.com" },
     update: {},
     create: {
-      workosId: "user_workos_client_seed_002",
+      supabaseId: "user_supabase_client_seed_002",
       email: "sarah.mitchell@example.com",
       role: "CLIENT",
       profile: {

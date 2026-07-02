@@ -76,14 +76,14 @@ enum LineItemCategory {
 // Models
 // =============================================================================
 
-/// Core user identity, linked to WorkOS for authentication.
+/// Core user identity, linked to Supabase for authentication.
 model User {
-  id        String   @id @default(cuid())
-  workosId  String   @unique @map("workos_id")
-  email     String   @unique
-  role      Role     @default(CLIENT)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id         String   @id @default(cuid())
+  supabaseId String   @unique @map("supabase_id")
+  email      String   @unique
+  role       Role     @default(CLIENT)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
 
   profile  Profile?
   projects Project[]

@@ -22,7 +22,7 @@
 | Framework | React Router v7 (Server Loaders/Actions) | 8.x |
 | Database | PostgreSQL (hosted on Supabase) | 15+ |
 | ORM | Prisma | Latest |
-| Authentication | WorkOS AuthKit (`@workos-inc/authkit-react-router`) | Latest |
+| Authentication | Supabase Auth (`@supabase/ssr`) | Latest |
 | Styling | Tailwind CSS | v4 |
 | UI Components | Shadcn UI | Latest |
 | Language | TypeScript | 5.x (strict mode) |
@@ -39,7 +39,7 @@ Every business service, database repository query, data validator, and payment u
 **Examples of compliant naming:**
 ```
 services/stripe-invoice-sync.server.ts      → Syncs invoices with Stripe
-services/workos-auth-validator.server.ts     → Validates WorkOS sessions
+services/supabase-auth-validator.server.ts     → Validates Supabase sessions
 repositories/estimate-mutations.server.ts    → Estimate create/update/delete
 repositories/project-queries.server.ts       → Project read operations
 validators/estimate-input.ts                 → Zod schema for estimate forms
@@ -166,11 +166,10 @@ huestone-homes/
 
 ## 6. Authentication & Authorization
 
-- **Provider**: WorkOS AuthKit via `@workos-inc/authkit-react-router`
-- **Session Management**: Encrypted HTTP-only cookies (server-side only)
+- **Provider**: Supabase Auth (`@supabase/ssr`)
+- **Session Management**: Encrypted HTTP-only cookies
 - **RBAC Roles**: `ADMIN`, `ESTIMATOR`, `CLIENT`
-- **Enforcement**: All protected routes must call `requireAuth()` or `requireAdmin()` from `services/workos-auth-validator.server.ts`
-- **Never** expose WorkOS API keys or session tokens to the client bundle
+- **Enforcement**: All protected routes must call `requireAuth()` or `requireAdmin()` from `services/supabase-auth-validator.server.ts`
 
 ---
 
@@ -193,10 +192,8 @@ Required variables:
 ```env
 DATABASE_URL=           # Supabase pooled connection (port 6543)
 DIRECT_URL=             # Supabase direct connection (port 5432)
-WORKOS_CLIENT_ID=       # WorkOS application client ID
-WORKOS_API_KEY=         # WorkOS API secret key
-WORKOS_REDIRECT_URI=    # OAuth callback URL
-WORKOS_COOKIE_PASSWORD= # 32+ char random string for cookie encryption
+VITE_SUPABASE_URL=             # Supabase project URL
+VITE_SUPABASE_PUBLISHABLE_KEY= # Supabase anon key
 ```
 
 ---

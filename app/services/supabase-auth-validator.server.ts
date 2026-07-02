@@ -1,21 +1,18 @@
 // =============================================================================
-// WorkOS Authentication Validator
+// Supabase Authentication Validator
 // =============================================================================
-// Single-purpose server utility for parsing WorkOS session cookies,
+// Single-purpose server utility for parsing Supabase session cookies,
 // resolving user identity, and enforcing Role-Based Access Control (RBAC).
 //
 // This module is the ONLY place authentication and authorization logic
 // should live. All route loaders/actions must delegate auth checks here.
 // =============================================================================
 
-import {
-  authkitLoader,
-  type AuthKitLoaderOptions,
-} from "@workos-inc/authkit-react-router";
 import type { LoaderFunctionArgs } from "react-router";
 import { redirect } from "react-router";
 
 import { prisma } from "~/utils/prisma-client.server";
+import { createClient } from "~/utils/supabase.server";
 import type { Role } from "@prisma/client";
 
 // =============================================================================
@@ -25,8 +22,8 @@ import type { Role } from "@prisma/client";
 export interface AuthenticatedUser {
   /** Internal database user ID (cuid) */
   id: string;
-  /** WorkOS user ID */
-  workosId: string;
+  /** Supabase Auth user ID */
+  supabaseId: string;
   /** User email address */
   email: string;
   /** User role for RBAC */
@@ -52,45 +49,34 @@ export interface RequireAuthOptions {
 // =============================================================================
 
 /**
- * Validates the WorkOS session cookie and resolves the authenticated user
+ * Validates the Supabase session cookie and resolves the authenticated user
  * from the database. Redirects to login if the session is invalid.
  *
  * Usage in a route loader:
  * ```typescript
- * export async function loader(args: LoaderFunctionArgs) {
- *   const user = await requireAuth(args);
+ * export async function loader({ request }: LoaderFunctionArgs) {
+ *   const user = await requireAuth(request);
  *   // user is guaranteed to be authenticated here
  * }
  * ```
  */
 export async function requireAuth(
-  args: LoaderFunctionArgs,
+  request: Request,
   options: RequireAuthOptions = {}
 ): Promise<AuthenticatedUser> {
   const { allowedRoles = [], loginUrl = "/login" } = options;
 
-  // Step 1: Validate the WorkOS session cookie
-  const authResponse = await authkitLoader(args, {
-    ensureSignedIn: true,
-  } satisfies AuthKitLoaderOptions);
+  // Step 1: Validate the Supabase session cookie
+  const { supabase } = createClient(request);
+  const { data: { user: supabaseUser }, error } = await supabase.auth.getUser();
 
-  // authkitLoader returns a Response (redirect) if not signed in.
-  // If we reach here, the user IS authenticated.
-  // Extract user data from the authkit response.
-  const authData =
-    authResponse instanceof Response
-      ? null
-      : (authResponse as Record<string, unknown>);
-
-  if (!authData || !authData.user) {
+  if (error || !supabaseUser) {
     throw redirect(loginUrl);
   }
 
-  const workosUser = authData.user as { id: string; email: string };
-
   // Step 2: Resolve the user from our database
   const dbUser = await prisma.user.findUnique({
-    where: { workosId: workosUser.id },
+    where: { supabaseId: supabaseUser.id },
     include: {
       profile: {
         select: {
@@ -104,7 +90,7 @@ export async function requireAuth(
   });
 
   if (!dbUser) {
-    // User exists in WorkOS but not in our database.
+    // User exists in Supabase but not in our database.
     // This can happen on first login — in production, you'd typically
     // create the user record here or redirect to an onboarding flow.
     throw redirect(loginUrl + "?error=user_not_found");
@@ -120,7 +106,7 @@ export async function requireAuth(
 
   return {
     id: dbUser.id,
-    workosId: dbUser.workosId,
+    supabaseId: dbUser.supabaseId,
     email: dbUser.email,
     role: dbUser.role,
     profile: dbUser.profile,
@@ -133,16 +119,16 @@ export async function requireAuth(
  *
  * Usage:
  * ```typescript
- * export async function loader(args: LoaderFunctionArgs) {
- *   const admin = await requireAdmin(args);
+ * export async function loader({ request }: LoaderFunctionArgs) {
+ *   const admin = await requireAdmin(request);
  *   // Only ADMIN users reach here
  * }
  * ```
  */
 export async function requireAdmin(
-  args: LoaderFunctionArgs
+  request: Request
 ): Promise<AuthenticatedUser> {
-  return requireAuth(args, { allowedRoles: ["ADMIN"] });
+  return requireAuth(request, { allowedRoles: ["ADMIN"] });
 }
 
 /**
@@ -150,9 +136,9 @@ export async function requireAdmin(
  * Use this for estimator-level routes.
  */
 export async function requireEstimator(
-  args: LoaderFunctionArgs
+  request: Request
 ): Promise<AuthenticatedUser> {
-  return requireAuth(args, { allowedRoles: ["ADMIN", "ESTIMATOR"] });
+  return requireAuth(request, { allowedRoles: ["ADMIN", "ESTIMATOR"] });
 }
 
 /**
@@ -161,26 +147,18 @@ export async function requireEstimator(
  * show different content for logged-in users.
  */
 export async function getOptionalUser(
-  args: LoaderFunctionArgs
+  request: Request
 ): Promise<AuthenticatedUser | null> {
   try {
-    const authResponse = await authkitLoader(args, {
-      ensureSignedIn: false,
-    } satisfies AuthKitLoaderOptions);
+    const { supabase } = createClient(request);
+    const { data: { user: supabaseUser }, error } = await supabase.auth.getUser();
 
-    const authData =
-      authResponse instanceof Response
-        ? null
-        : (authResponse as Record<string, unknown>);
-
-    if (!authData || !authData.user) {
+    if (error || !supabaseUser) {
       return null;
     }
 
-    const workosUser = authData.user as { id: string; email: string };
-
     const dbUser = await prisma.user.findUnique({
-      where: { workosId: workosUser.id },
+      where: { supabaseId: supabaseUser.id },
       include: {
         profile: {
           select: {
@@ -199,7 +177,7 @@ export async function getOptionalUser(
 
     return {
       id: dbUser.id,
-      workosId: dbUser.workosId,
+      supabaseId: dbUser.supabaseId,
       email: dbUser.email,
       role: dbUser.role,
       profile: dbUser.profile,
