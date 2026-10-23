@@ -11,6 +11,12 @@
 # Prisma
 /prisma/migrations/
 
+# Source camera originals (raw photos kept on disk, not tracked in git)
+/public/images/
+
+# Cloudflare Wrangler
+.wrangler/
+
 # IDE
 .vscode/
 .idea/
