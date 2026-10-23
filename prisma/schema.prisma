@@ -287,3 +287,19 @@ model Warranty {
   @@index([coverageEnd])
   @@map("warranties")
 }
+
+/// An inquiry submitted through the public contact form.
+model ContactInquiry {
+  id      String  @id @default(cuid())
+  name    String
+  email   String
+  phone   String?
+  address String?
+  message String
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([createdAt])
+  @@map("contact_inquiries")
+}
