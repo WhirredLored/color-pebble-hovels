@@ -1,0 +1,21 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "huestone-homes",
+  "compatibility_date": "2026-10-18",
+  "main": "./workers/app.ts",
+  "assets": {
+    "directory": "build/client"
+  },
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "observability": {
+    "enabled": true
+  },
+  "r2_buckets": [
+    {
+      "binding": "PORTFOLIO_BUCKET",
+      "bucket_name": "huestone-portfolio"
+    }
+  ]
+}

@@ -5,6 +5,7 @@
 // session management via @supabase/ssr. Use this in React Router loaders
 // and actions for authenticated Supabase queries.
 //
+// Compatible with Node.js and Cloudflare Workers runtime.
 // This file MUST use the .server.ts suffix to ensure it is never
 // bundled for the client.
 // =============================================================================
@@ -15,12 +16,27 @@ import {
   serializeCookieHeader,
 } from "@supabase/ssr";
 
+export function getSupabaseEnv() {
+  const url = process.env.VITE_SUPABASE_URL || "";
+  const publishableKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
+  return { url, publishableKey };
+}
+
 export function createClient(request: Request) {
   const headers = new Headers();
+  const { url, publishableKey } = getSupabaseEnv();
+
+  if (!url || !publishableKey) {
+    // If Supabase credentials are not yet configured, return a mock/warning-safe client
+    // so public pages render smoothly without crashing.
+    console.warn(
+      "[Supabase] VITE_SUPABASE_URL or VITE_SUPABASE_PUBLISHABLE_KEY is not set."
+    );
+  }
 
   const supabase = createServerClient(
-    process.env.VITE_SUPABASE_URL!,
-    process.env.VITE_SUPABASE_PUBLISHABLE_KEY!,
+    url || "https://placeholder-project.supabase.co",
+    publishableKey || "placeholder-publishable-key",
     {
       cookies: {
         getAll() {

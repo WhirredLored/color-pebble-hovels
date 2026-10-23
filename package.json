@@ -4,8 +4,12 @@
   "type": "module",
   "scripts": {
     "build": "react-router build",
+    "cf-typegen": "wrangler types",
+    "deploy": "wrangler deploy",
     "dev": "react-router dev",
     "images": "tsx scripts/build-web-images.ts",
+    "images:upload": "tsx scripts/upload-to-r2.ts",
+    "preview": "wrangler dev",
     "typecheck": "react-router typegen && tsc"
   },
   "dependencies": {
@@ -25,6 +29,8 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.65.0",
+    "@cloudflare/workers-types": "^5.20261023.1",
     "@react-router/dev": "8.0.0",
     "@tailwindcss/vite": "^4.2.2",
     "@types/node": "^22",
@@ -36,7 +42,8 @@
     "tailwindcss": "^4.2.2",
     "tsx": "^4.22.4",
     "typescript": "^5.9.3",
-    "vite": "^8.0.3"
+    "vite": "^8.0.3",
+    "wrangler": "^4.152.0"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
