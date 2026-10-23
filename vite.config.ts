@@ -26,6 +26,10 @@ export default defineConfig({
     reactRouter(),
     pruneRawImagesPlugin(),
   ],
+  define: {
+    __dirname: '""',
+    __filename: '""',
+  },
   resolve: {
     tsconfigPaths: true,
   },

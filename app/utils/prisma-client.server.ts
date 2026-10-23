@@ -1,30 +1,29 @@
 // =============================================================================
-// Prisma Client Factory
+// Database Client Factory
 // =============================================================================
-// Uses the Prisma 7.x driver adapter pattern with @prisma/adapter-pg.
+// Uses node-postgres (pg) on Cloudflare Workers (and Node.js).
 //
-// On Cloudflare Workers a client (and its TCP connection) is created per
-// request and disconnected after the response via ctx.waitUntil — a connection
-// shared across requests hangs the next request. Outside a Worker request
-// (Node scripts, seeds) a single process-wide client is reused.
+// Cloudflare Workers disallows dynamic runtime WebAssembly compilation from
+// base64 buffers, which causes Prisma 7's query compiler to fail with
+// CompileError: WebAssembly.Module(): Wasm code generation disallowed by embedder.
 //
-// Connection string precedence:
-//   1. HYPERDRIVE binding (if configured in wrangler.jsonc)
-//   2. DATABASE_URL Worker secret / environment variable
+// By using a direct pure-JS PostgreSQL driver (pg) with Cloudflare's
+// nodejs_compat TCP sockets, queries run natively, fast, and without any
+// runtime Wasm compilation issues.
 //
-// This file MUST use the .server.ts suffix to ensure it is never
-// bundled for the client.
+// On Cloudflare Workers a connection is established per request and closed
+// after the response via ctx.waitUntil (through worker-request-scope disposers).
 // =============================================================================
 
-import { PrismaPg } from "@prisma/adapter-pg";
-import { PrismaClient } from "@prisma/client";
+import { Client } from "pg";
+import type { PrismaClient } from "@prisma/client";
 
 import {
   getWorkerRequestScope,
   readServerEnv,
 } from "~/utils/worker-request-scope.server";
 
-const SCOPE_KEY = "prisma";
+const SCOPE_KEY = "pg_client";
 
 function getConnectionString(): string {
   const hyperdrive = getWorkerRequestScope()?.env.HYPERDRIVE as
@@ -39,46 +38,154 @@ function getConnectionString(): string {
   return url;
 }
 
-function createPrismaClient(): PrismaClient {
-  const adapter = new PrismaPg({ connectionString: getConnectionString() });
-  return new PrismaClient({
-    adapter,
-    log: readServerEnv("NODE_ENV") === "development" ? ["error", "warn"] : ["error"],
-  });
-}
+let globalClient: Client | null = null;
 
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
-};
-
-function getClient(): PrismaClient {
+async function getPgClient(): Promise<Client> {
   const scope = getWorkerRequestScope();
   if (scope) {
-    let client = scope.resources.get(SCOPE_KEY) as PrismaClient | undefined;
+    let client = scope.resources.get(SCOPE_KEY) as Client | undefined;
     if (!client) {
-      client = createPrismaClient();
+      client = new Client({
+        connectionString: getConnectionString(),
+      });
+      await client.connect();
       scope.resources.set(SCOPE_KEY, client);
-      const created = client;
-      scope.disposers.push(() => created.$disconnect());
+      const activeClient = client;
+      scope.disposers.push(() => activeClient.end());
     }
     return client;
   }
 
-  if (!globalForPrisma.prisma) {
-    globalForPrisma.prisma = createPrismaClient();
+  if (!globalClient) {
+    globalClient = new Client({
+      connectionString: getConnectionString(),
+    });
+    await globalClient.connect();
   }
-  return globalForPrisma.prisma;
+  return globalClient;
 }
 
-// Lazy proxy: pages that never touch the database do not need DATABASE_URL,
-// and each property access resolves the client for the current request.
-export const prisma: PrismaClient = new Proxy({} as PrismaClient, {
-  get(_target, prop) {
-    const client = getClient();
-    const val = (client as unknown as Record<string | symbol, unknown>)[prop];
-    if (typeof val === "function") {
-      return val.bind(client);
-    }
-    return val;
+export const prisma = {
+  contactInquiry: {
+    async create({
+      data,
+      select,
+    }: {
+      data: {
+        name: string;
+        email: string;
+        phone?: string | null;
+        address?: string | null;
+        message: string;
+      };
+      select?: { id?: boolean };
+    }): Promise<{ id: string }> {
+      const client = await getPgClient();
+      const id = crypto.randomUUID();
+      const res = await client.query(
+        `INSERT INTO "contact_inquiries" ("id", "name", "email", "phone", "address", "message", "created_at", "updated_at")
+         VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+         RETURNING "id"`,
+        [id, data.name, data.email, data.phone ?? null, data.address ?? null, data.message]
+      );
+      return { id: res.rows[0].id };
+    },
+
+    async findMany(args?: {
+      where?: { email?: string };
+      take?: number;
+      orderBy?: { createdAt?: "asc" | "desc" };
+    }) {
+      const client = await getPgClient();
+      let query = `SELECT "id", "name", "email", "phone", "address", "message", "created_at" AS "createdAt", "updated_at" AS "updatedAt" FROM "contact_inquiries"`;
+      const params: unknown[] = [];
+      if (args?.where?.email) {
+        query += ` WHERE "email" = $1`;
+        params.push(args.where.email);
+      }
+      query += ` ORDER BY "created_at" ${args?.orderBy?.createdAt === "asc" ? "ASC" : "DESC"}`;
+      if (args?.take) {
+        params.push(args.take);
+        query += ` LIMIT $${params.length}`;
+      }
+      const res = await client.query(query, params);
+      return res.rows;
+    },
+
+    async deleteMany(args?: { where?: { email?: string } }) {
+      const client = await getPgClient();
+      let query = `DELETE FROM "contact_inquiries"`;
+      const params: unknown[] = [];
+      if (args?.where?.email) {
+        query += ` WHERE "email" = $1`;
+        params.push(args.where.email);
+      }
+      const res = await client.query(query, params);
+      return { count: res.rowCount ?? 0 };
+    },
+
+    async count() {
+      const client = await getPgClient();
+      const res = await client.query(`SELECT COUNT(*)::int AS count FROM "contact_inquiries"`);
+      return res.rows[0]?.count ?? 0;
+    },
   },
-});
+
+  user: {
+    async findUnique(args: {
+      where: { supabaseId?: string; id?: string; email?: string };
+      select?: Record<string, boolean>;
+    }) {
+      const client = await getPgClient();
+      let res;
+      if (args.where.supabaseId) {
+        res = await client.query(
+          `SELECT "id", "supabase_id" AS "supabaseId", "email", "role", "created_at" AS "createdAt", "updated_at" AS "updatedAt"
+           FROM "users" WHERE "supabase_id" = $1 LIMIT 1`,
+          [args.where.supabaseId]
+        );
+      } else if (args.where.id) {
+        res = await client.query(
+          `SELECT "id", "supabase_id" AS "supabaseId", "email", "role", "created_at" AS "createdAt", "updated_at" AS "updatedAt"
+           FROM "users" WHERE "id" = $1 LIMIT 1`,
+          [args.where.id]
+        );
+      } else if (args.where.email) {
+        res = await client.query(
+          `SELECT "id", "supabase_id" AS "supabaseId", "email", "role", "created_at" AS "createdAt", "updated_at" AS "updatedAt"
+           FROM "users" WHERE "email" = $1 LIMIT 1`,
+          [args.where.email]
+        );
+      }
+      if (!res || res.rows.length === 0) return null;
+      const row = res.rows[0];
+      if (args.select) {
+        const selected: Record<string, unknown> = {};
+        for (const key of Object.keys(args.select)) {
+          if (args.select[key]) selected[key] = row[key];
+        }
+        return selected;
+      }
+      return row;
+    },
+  },
+
+  $queryRaw: async (query: string, ...params: unknown[]) => {
+    const client = await getPgClient();
+    const res = await client.query(query, params);
+    return res.rows;
+  },
+
+  $executeRaw: async (query: string, ...params: unknown[]) => {
+    const client = await getPgClient();
+    const res = await client.query(query, params);
+    return res.rowCount ?? 0;
+  },
+
+  $disconnect: async () => {
+    if (globalClient) {
+      await globalClient.end();
+      globalClient = null;
+    }
+  },
+} as unknown as PrismaClient;

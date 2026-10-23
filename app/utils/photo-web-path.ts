@@ -16,7 +16,8 @@
 // value would only reach the server bundle, so SSR HTML and the hydrated
 // client could disagree and cause hydration mismatches.
 function getPhotoCdnBase(): string {
-  const base = import.meta.env.VITE_PHOTO_CDN_URL;
+  const base =
+    import.meta.env.VITE_PHOTO_CDN_URL || "https://photos.huestonehomes.com";
   return typeof base === "string" ? base.replace(/\/+$/, "") : "";
 }
 

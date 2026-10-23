@@ -14,6 +14,12 @@
   },
   "upload_source_maps": true,
   "workers_dev": true,
+  "r2_buckets": [
+    {
+      "binding": "PHOTOS",
+      "bucket_name": "huestone-portfolio"
+    }
+  ],
   "routes": [
     {
       "pattern": "huestonehomes.com",

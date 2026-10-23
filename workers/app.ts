@@ -16,6 +16,7 @@ export interface Env {
   VITE_SUPABASE_PUBLISHABLE_KEY?: string;
   DATABASE_URL?: string;
   HYPERDRIVE?: Hyperdrive;
+  PHOTOS?: R2Bucket;
   NODE_ENV?: string;
 }
 
@@ -54,6 +55,21 @@ function canonicalRedirect(request: Request): Response | null {
 
 export default {
   async fetch(request, env, ctx) {
+    const url = new URL(request.url);
+    if (url.hostname === "photos.huestonehomes.com" || url.pathname.startsWith("/photos/")) {
+      const key = url.pathname.replace(/^\/+/, "");
+      if (key && env.PHOTOS) {
+        const object = await env.PHOTOS.get(key);
+        if (object) {
+          const headers = new Headers();
+          object.writeHttpMetadata(headers);
+          headers.set("etag", object.httpEtag);
+          headers.set("Cache-Control", "public, max-age=86400");
+          return new Response(object.body, { headers });
+        }
+      }
+    }
+
     const redirect = canonicalRedirect(request);
     if (redirect) return redirect;
 
