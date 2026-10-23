@@ -1,0 +1,5 @@
+# Cloudflare Workers static assets ignore file
+wrangler.json
+.dev.vars
+images
+images/**

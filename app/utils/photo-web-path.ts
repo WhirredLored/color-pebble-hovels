@@ -11,14 +11,13 @@
 // When unset, falls back seamlessly to the local public static asset path.
 // =============================================================================
 
+// The value is inlined by Vite at BUILD time into both the server and client
+// bundles. It is deliberately NOT read from runtime process.env: a runtime
+// value would only reach the server bundle, so SSR HTML and the hydrated
+// client could disagree and cause hydration mismatches.
 function getPhotoCdnBase(): string {
-  if (typeof import.meta !== "undefined" && import.meta.env?.VITE_PHOTO_CDN_URL) {
-    return import.meta.env.VITE_PHOTO_CDN_URL.replace(/\/+$/, "");
-  }
-  if (typeof process !== "undefined" && process.env?.VITE_PHOTO_CDN_URL) {
-    return process.env.VITE_PHOTO_CDN_URL.replace(/\/+$/, "");
-  }
-  return "";
+  const base = import.meta.env.VITE_PHOTO_CDN_URL;
+  return typeof base === "string" ? base.replace(/\/+$/, "") : "";
 }
 
 /** Strips the extension and reduces a source file name to a URL-safe slug. */

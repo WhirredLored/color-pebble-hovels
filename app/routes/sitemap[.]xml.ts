@@ -1,8 +1,10 @@
 import { getAllProjects } from "~/repositories/project-catalog-queries.server";
+import { BUSINESS_DOMAIN } from "~/utils/business-contact-info";
 
-export function loader({ request }: { request: Request }) {
-  const url = new URL(request.url);
-  const domain = url.origin;
+export function loader() {
+  // Always advertise the canonical production origin, even when served from
+  // workers.dev or the www host.
+  const domain = `https://${BUSINESS_DOMAIN}`;
 
   const staticRoutes = [
     { loc: `${domain}/`, priority: "1.0", changefreq: "weekly" },

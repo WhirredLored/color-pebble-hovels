@@ -1,62 +1,77 @@
 // =============================================================================
-// Prisma Client Singleton
+// Prisma Client Factory
 // =============================================================================
-// Prevents PrismaClient connection exhaustion during development HMR.
 // Uses the Prisma 7.x driver adapter pattern with @prisma/adapter-pg.
-// Compatible with Node.js and Cloudflare Workers (nodejs_compat).
+//
+// On Cloudflare Workers a client (and its TCP connection) is created per
+// request and disconnected after the response via ctx.waitUntil — a connection
+// shared across requests hangs the next request. Outside a Worker request
+// (Node scripts, seeds) a single process-wide client is reused.
+//
+// Connection string precedence:
+//   1. HYPERDRIVE binding (if configured in wrangler.jsonc)
+//   2. DATABASE_URL Worker secret / environment variable
 //
 // This file MUST use the .server.ts suffix to ensure it is never
 // bundled for the client.
 // =============================================================================
 
-import { Pool } from "pg";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 
+import {
+  getWorkerRequestScope,
+  readServerEnv,
+} from "~/utils/worker-request-scope.server";
+
+const SCOPE_KEY = "prisma";
+
 function getConnectionString(): string {
-  const url = process.env.HYPERDRIVE_URL || process.env.DATABASE_URL;
+  const hyperdrive = getWorkerRequestScope()?.env.HYPERDRIVE as
+    | { connectionString?: string }
+    | undefined;
+  const url = hyperdrive?.connectionString || readServerEnv("DATABASE_URL");
   if (!url) {
     throw new Error(
-      "Database connection string not found. Please set DATABASE_URL (or HYPERDRIVE_URL) in environment variables."
+      "Database connection string not found. Set the DATABASE_URL secret (or a HYPERDRIVE binding)."
     );
   }
   return url;
 }
 
 function createPrismaClient(): PrismaClient {
-  const pool = new Pool({
-    connectionString: getConnectionString(),
-  });
-
-  const adapter = new PrismaPg(pool);
-
+  const adapter = new PrismaPg({ connectionString: getConnectionString() });
   return new PrismaClient({
     adapter,
-    log:
-      process.env.NODE_ENV === "development"
-        ? ["query", "error", "warn"]
-        : ["error"],
+    log: readServerEnv("NODE_ENV") === "development" ? ["error", "warn"] : ["error"],
   });
 }
 
-// In development, store the client on `globalThis` to survive HMR reloads.
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
 function getClient(): PrismaClient {
-  if (globalForPrisma.prisma) {
-    return globalForPrisma.prisma;
+  const scope = getWorkerRequestScope();
+  if (scope) {
+    let client = scope.resources.get(SCOPE_KEY) as PrismaClient | undefined;
+    if (!client) {
+      client = createPrismaClient();
+      scope.resources.set(SCOPE_KEY, client);
+      const created = client;
+      scope.disposers.push(() => created.$disconnect());
+    }
+    return client;
   }
-  const client = createPrismaClient();
-  if (process.env.NODE_ENV !== "production") {
-    globalForPrisma.prisma = client;
+
+  if (!globalForPrisma.prisma) {
+    globalForPrisma.prisma = createPrismaClient();
   }
-  return client;
+  return globalForPrisma.prisma;
 }
 
-// Lazy proxy so that pages not requiring the database do not error if
-// DATABASE_URL is not yet configured.
+// Lazy proxy: pages that never touch the database do not need DATABASE_URL,
+// and each property access resolves the client for the current request.
 export const prisma: PrismaClient = new Proxy({} as PrismaClient, {
   get(_target, prop) {
     const client = getClient();

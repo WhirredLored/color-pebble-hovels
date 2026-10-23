@@ -5,10 +5,11 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
+  useLocation,
 } from "react-router";
 
 import type { Route } from "./+types/root";
-import { BUSINESS_NAME } from "~/utils/business-contact-info";
+import { BUSINESS_DOMAIN, BUSINESS_NAME } from "~/utils/business-contact-info";
 import "./app.css";
 
 export const links: Route.LinksFunction = () => [
@@ -35,11 +36,15 @@ export function meta() {
 }
 
 export function Layout({ children }: { children: React.ReactNode }) {
+  const { pathname } = useLocation();
+  const canonicalUrl = `https://${BUSINESS_DOMAIN}${pathname === "/" ? "/" : pathname.replace(/\/+$/, "")}`;
+
   return (
     <html lang="en">
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="canonical" href={canonicalUrl} />
         <Meta />
         <Links />
       </head>

@@ -12,10 +12,16 @@
   "observability": {
     "enabled": true
   },
-  "r2_buckets": [
+  "upload_source_maps": true,
+  "workers_dev": true,
+  "routes": [
     {
-      "binding": "PORTFOLIO_BUCKET",
-      "bucket_name": "huestone-portfolio"
+      "pattern": "huestonehomes.com",
+      "custom_domain": true
+    },
+    {
+      "pattern": "www.huestonehomes.com",
+      "custom_domain": true
     }
   ]
 }

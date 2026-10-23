@@ -16,9 +16,11 @@ import {
   serializeCookieHeader,
 } from "@supabase/ssr";
 
+import { readServerEnv } from "~/utils/worker-request-scope.server";
+
 export function getSupabaseEnv() {
-  const url = process.env.VITE_SUPABASE_URL || "";
-  const publishableKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
+  const url = readServerEnv("VITE_SUPABASE_URL") || "";
+  const publishableKey = readServerEnv("VITE_SUPABASE_PUBLISHABLE_KEY") || "";
   return { url, publishableKey };
 }
 
@@ -26,17 +28,17 @@ export function createClient(request: Request) {
   const headers = new Headers();
   const { url, publishableKey } = getSupabaseEnv();
 
+  // Only authenticated routes call this. Fail loudly rather than talking to a
+  // placeholder project with fake credentials.
   if (!url || !publishableKey) {
-    // If Supabase credentials are not yet configured, return a mock/warning-safe client
-    // so public pages render smoothly without crashing.
-    console.warn(
-      "[Supabase] VITE_SUPABASE_URL or VITE_SUPABASE_PUBLISHABLE_KEY is not set."
+    throw new Error(
+      "[Supabase] VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY must be set."
     );
   }
 
   const supabase = createServerClient(
-    url || "https://placeholder-project.supabase.co",
-    publishableKey || "placeholder-publishable-key",
+    url,
+    publishableKey,
     {
       cookies: {
         getAll() {
