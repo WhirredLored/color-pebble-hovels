@@ -19,20 +19,25 @@ export const links: Route.LinksFunction = () => [
   },
   {
     rel: "stylesheet",
-    href: "https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap",
+    href: "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap",
   },
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className="scroll-smooth">
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Huestones Paint Restoration LLC | www.huestonehomes.com</title>
+        <meta
+          name="description"
+          content="Huestones Paint Restoration LLC - Premier painting contractor specializing in residential & commercial exterior restoration, fine interior painting, cabinet refinishing, and historic architectural coatings. Visit www.huestonehomes.com for free estimates."
+        />
         <Meta />
         <Links />
       </head>
-      <body>
+      <body className="bg-slate-950 text-slate-100 font-sans antialiased selection:bg-amber-500 selection:text-slate-950">
         {children}
         <ScrollRestoration />
         <Scripts />
