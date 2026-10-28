@@ -16,7 +16,17 @@ export function SiteFooter() {
         <div className="grid gap-8 sm:grid-cols-2">
           <div>
             <p className="font-serif text-base text-ink">{BUSINESS_NAME}</p>
-            <p className="mt-2 text-muted">Residential work in {SERVICE_AREA}.</p>
+            <p className="mt-2 text-muted">
+              Residential exterior finishing, rot repair, and custom architectural millwork in {SERVICE_AREA}.
+            </p>
+            <p className="mt-3">
+              <Link
+                to="/custom-millwork"
+                className="text-navy underline underline-offset-4 text-xs"
+              >
+                Custom Carving & Architectural Millwork →
+              </Link>
+            </p>
           </div>
 
           <div>

@@ -8,6 +8,8 @@
 export interface Service {
   name: string;
   description: string;
+  href?: string;
+  detailLabel?: string;
 }
 
 const SERVICES: Service[] = [
@@ -15,6 +17,13 @@ const SERVICES: Service[] = [
     name: "Exterior painting",
     description:
       "Priming and finish coats on siding, trim, porches and outbuildings.",
+  },
+  {
+    name: "Custom Carving & Architectural Millwork",
+    description:
+      "Custom-fabricated architectural woodwork for restoration, replacement, and new construction. From a single missing ornament to a complete run of matching windowsills or cabinet doors, we produce components to fit the dimensions, profiles, and character of the project.",
+    href: "/custom-millwork",
+    detailLabel: "Learn about custom millwork & carving capabilities",
   },
   {
     name: "Surface preparation",
@@ -49,5 +58,10 @@ export function getAllServices(): Service[] {
 
 /** The services shown on the home page, ahead of the link to the full list. */
 export function getFeaturedServices(): Service[] {
-  return SERVICES.slice(0, 4);
+  return [
+    SERVICES[0], // Exterior painting
+    SERVICES[1], // Custom Carving & Architectural Millwork
+    SERVICES[3], // Siding
+    SERVICES[4], // Wood and rot repair
+  ];
 }

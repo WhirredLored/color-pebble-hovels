@@ -13,10 +13,12 @@ import { photoWebPath, photoWebPathLarge } from "~/utils/photo-web-path";
 
 export function meta() {
   return [
-    { title: `${BUSINESS_NAME} | Exterior painting, siding and wood repair` },
+    {
+      title: `${BUSINESS_NAME} | Exterior painting, siding, rot repair & architectural millwork`,
+    },
     {
       name: "description",
-      content: `${BUSINESS_NAME}. Exterior painting, siding and wood repair. Residential work in ${SERVICE_AREA}.`,
+      content: `${BUSINESS_NAME}. Exterior painting, siding, structural rot repair, and custom architectural millwork in ${SERVICE_AREA}.`,
     },
   ];
 }
@@ -48,9 +50,11 @@ export default function HomePage({ loaderData }: Route.ComponentProps) {
   return (
     <div className="mx-auto max-w-5xl px-4 py-12">
       <h1 className="font-serif text-3xl sm:text-4xl">
-        Exterior painting, siding and wood repair
+        Exterior painting, siding, wood repair & custom millwork
       </h1>
-      <p className="mt-3 text-lg">Residential work in {serviceArea}.</p>
+      <p className="mt-3 text-lg">
+        Residential restoration, exterior finishing, and precision custom woodwork in {serviceArea}.
+      </p>
 
       <figure className="mt-10">
         <img
@@ -90,12 +94,57 @@ export default function HomePage({ loaderData }: Route.ComponentProps) {
           {services.map((service) => (
             <div key={service.name} className="py-4 sm:flex sm:gap-8">
               <dt className="font-serif text-base text-ink sm:w-56 sm:shrink-0">
-                {service.name}
+                {service.href ? (
+                  <Link
+                    to={service.href}
+                    className="text-navy hover:underline underline-offset-4"
+                  >
+                    {service.name}
+                  </Link>
+                ) : (
+                  service.name
+                )}
               </dt>
-              <dd className="mt-1 text-sm sm:mt-0">{service.description}</dd>
+              <dd className="mt-1 text-sm sm:mt-0">
+                <p className="leading-relaxed">{service.description}</p>
+                {service.href && (
+                  <p className="mt-2 text-sm">
+                    <Link
+                      to={service.href}
+                      className="text-navy underline underline-offset-4"
+                    >
+                      {service.detailLabel || "Learn more"} →
+                    </Link>
+                  </p>
+                )}
+              </dd>
             </div>
           ))}
         </dl>
+
+        {/* Feature block for custom millwork */}
+        <div className="mt-8 border border-rule bg-panel p-6">
+          <div className="sm:flex sm:items-center sm:justify-between sm:gap-6">
+            <div>
+              <h3 className="font-serif text-lg text-ink">
+                Need custom-milled woodwork or historic ornament?
+              </h3>
+              <p className="mt-1 text-sm text-body">
+                We replicate architectural ornament, milled windowsills, cornices,
+                and custom cabinet panels using CNC machining and bench joinery.
+              </p>
+            </div>
+            <div className="mt-4 shrink-0 sm:mt-0">
+              <Link
+                to="/custom-millwork"
+                className="inline-block rounded-[3px] bg-navy px-4 py-2 text-sm font-medium text-white hover:bg-ink"
+              >
+                Custom Millwork Capabilities
+              </Link>
+            </div>
+          </div>
+        </div>
+
         <p className="mt-6 text-sm">
           <Link to="/services" className="text-navy underline underline-offset-4">
             All services

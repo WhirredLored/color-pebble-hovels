@@ -11,6 +11,7 @@ export default [
   layout("routes/public-site/route.tsx", [
     index("routes/public-site.home/route.tsx"),
     route("services", "routes/public-site.services/route.tsx"),
+    route("custom-millwork", "routes/public-site.custom-millwork/route.tsx"),
     route("projects", "routes/public-site.projects/route.tsx"),
     route("projects/:slug", "routes/public-site.project-detail/route.tsx"),
     route("process", "routes/public-site.process/route.tsx"),

@@ -9,6 +9,7 @@ export function loader() {
   const staticRoutes = [
     { loc: `${domain}/`, priority: "1.0", changefreq: "weekly" },
     { loc: `${domain}/services`, priority: "0.9", changefreq: "monthly" },
+    { loc: `${domain}/custom-millwork`, priority: "0.9", changefreq: "monthly" },
     { loc: `${domain}/projects`, priority: "0.9", changefreq: "weekly" },
     { loc: `${domain}/process`, priority: "0.8", changefreq: "monthly" },
     { loc: `${domain}/contact`, priority: "0.8", changefreq: "monthly" },

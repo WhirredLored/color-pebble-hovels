@@ -6,6 +6,7 @@ import { BUSINESS_NAME } from "~/utils/business-contact-info";
 const NAV_ITEMS = [
   { to: "/", label: "Home", end: true },
   { to: "/services", label: "Services", end: false },
+  { to: "/custom-millwork", label: "Custom Millwork", end: false },
   { to: "/projects", label: "Projects", end: false },
   { to: "/process", label: "Process", end: false },
   { to: "/contact", label: "Contact", end: false },
